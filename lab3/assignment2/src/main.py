@@ -32,4 +32,4 @@ if __name__ == '__main__':
 
 	if sol_operations is not None:
 		print('Solution operations:')
-		print(sol_operations)
+		print([(i + 1) & 0xF for i in sol_operations])
