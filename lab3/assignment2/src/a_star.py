@@ -94,7 +94,7 @@ def a_star_worker(
 			u[i], u[pos] = u[pos], u[i]
 			vid = cantor_expansion(u)
 			if g + 1 < dis.get(vid, 1000):
-				state_from[vid] = uid, i
+				state_from[vid] = uid, u[pos]
 				pq.put(StateNode(u, vid, g + 1, h_func(u), i))
 				dis[vid] = g + 1
 			u[i], u[pos] = u[pos], u[i]
