@@ -128,14 +128,15 @@ WorkerReturnType = tuple[str, Any, tuple[list[State], list[int]], float]
 def run_a_star_worker(
 	s: FlatState,
 	h_name: str,
-	h_ratio: float,
+	h_aug_type: str,
+	h_aug_ratio: float,
 	result_queue: Queue[WorkerReturnType],
 	stop_event: Event,
 ):
-	task_name = f'{h_name}_{h_ratio}'
-	logger.debug(f'[{task_name}] 开始使用 {h_name} 启发式函数 (比例 {h_ratio})...')
+	task_name = f'{h_name}_{h_aug_type}_{h_aug_ratio}'
+	logger.debug(f'进程 {task_name} 已启动')
 
-	h_func = heuristic.__dict__[h_name](h_ratio)
+	h_func = heuristic.__dict__[h_name]((heuristic.multiple_aug if h_aug_type == 'mul' else heuristic.power_aug)(h_aug_ratio))
 
 	start_time = time.time()
 	result = a_star_worker(s, h_func, stop_event, task_name)
@@ -146,7 +147,7 @@ def run_a_star_worker(
 		logger.info(f'[{task_name}] 找到解决方案，用时 {elapsed:.2f} 秒')
 
 		if not stop_event.is_set():
-			result_queue.put((h_name, h_ratio, result, elapsed))
+			result_queue.put((h_name, h_aug_ratio, result, elapsed))
 		stop_event.set()
 	else:
 		if stop_event.is_set():
@@ -185,8 +186,8 @@ def A_star(state: Union[State, FlatState]) -> Union[list[State], list[int], tupl
 	# 创建进程
 	logger.info('[MAIN] 开始创建进程')
 	processes = []
-	for h_name, h_ratio in config.h_list:
-		p = multiprocessing.Process(target=run_a_star_worker, args=(s, h_name, h_ratio, result_queue, stop_event))
+	for h_name, h_type, h_aug in config.h_list:
+		p = multiprocessing.Process(target=run_a_star_worker, args=(s, h_name, h_type, h_aug, result_queue, stop_event))
 		processes.append(p)
 		p.start()
 
@@ -195,8 +196,8 @@ def A_star(state: Union[State, FlatState]) -> Union[list[State], list[int], tupl
 	solution = None
 	try:
 		first_result = result_queue.get()
-		h_name, h_ratio, solution, elapsed = first_result
-		logger.info(f'[MAIN] 最先找到解决方案的是: {h_name}_{h_ratio}')
+		h_name, h_aug, solution, elapsed = first_result
+		logger.info(f'[MAIN] 最先找到解决方案的是: {h_name}_{h_aug}')
 		logger.info(f'[MAIN] 耗时: {elapsed:.2f} 秒')
 		logger.info(f'[MAIN] 解的长度: {len(solution[1])} 步')
 	except Exception as e:

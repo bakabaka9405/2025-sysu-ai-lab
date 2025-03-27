@@ -1,16 +1,25 @@
 from typing import Literal, Union
 
-h_list: list[tuple[Literal['manhattan', 'weighted_manhattan', 'misplaced', 'weighted_misplaced'], float]] = [
-	('manhattan', 1.0),
-	('manhattan', 1.5),
-	('manhattan', 2.0),
-	('manhattan', 2.5),
-	('manhattan', 3.0),
-	('manhattan', 3.5),
-	('manhattan', 4.0),
-	('weighted_manhattan', 2.0),
-	('weighted_manhattan', 2.5),
-	('weighted_manhattan', 3.0),
+h_list: list[
+	tuple[
+		Literal[
+			'manhattan',
+			'weighted_manhattan',
+			'misplaced',
+			'weighted_misplaced',
+		],
+		Literal['mul', 'pow'],
+		float,
+	]
+] = [
+	('manhattan', 'mul', 2),
+	('manhattan', 'mul', 2.5),
+	('manhattan', 'mul', 3),
+	('manhattan', 'mul', 3.5),
+	('manhattan', 'mul', 4),
+	('manhattan', 'pow', 1.1),
+	('manhattan', 'pow', 1.2),
+	('manhattan', 'pow', 1.5),
 ]
 """
 启发式函数列表及其参数
@@ -49,7 +58,7 @@ A* 的最大搜索步数，不搜索超过这个步数的状态
 如果设置为非 0 值，建议不要小于 15-puzzle 的最优解步数上限 80
 """
 
-a_star_initial_state: Union[list[list[int]], list[int], int, None] = 1234567890127
+a_star_initial_state: Union[list[list[int]], list[int], int, None] = [[0, 5, 15, 14], [7, 9, 6, 13], [1, 2, 12, 10], [8, 11, 4, 3]]
 """
 初始状态，可以是一个 4x4 的二维列表（标准格式，0 表示空），一个一维列表（0~15 的排列，15 表示空），或者一个整数（将通过逆康托展开还原为一维列表）
 如果为 None，则从标准输入读取初始状态
