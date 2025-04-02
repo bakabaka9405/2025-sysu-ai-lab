@@ -12,20 +12,27 @@ h_list: list[
 		float,
 	]
 ] = [
-	# ('manhattan', 'mul', 2),
+	('manhattan', 'mul', 2),
 	('manhattan', 'mul', 2.25),
-	# ('manhattan', 'mul', 2.4),
-	# ('manhattan', 'mul', 2.5),
-	# ('manhattan', 'mul', 2.75),
-	# ('manhattan', 'mul', 3.25),
-	# ('manhattan', 'mul', 3.5),
-	# ('manhattan', 'mul', 3.75),
-	# ('manhattan', 'mul', 4),
+	('manhattan', 'mul', 2.4),
+	('manhattan', 'mul', 2.5),
+	('manhattan', 'mul', 2.75),
+	('manhattan', 'mul', 3.25),
+	('manhattan', 'mul', 3.5),
+	('manhattan', 'mul', 3.75),
+	('manhattan', 'mul', 4),
 ]
 """
 启发式函数列表及其参数
 会为每个启发式函数创建一个进程，并在进程中运行独立的 A* 算法
 返回最快算出的结果
+
+每个列表项分三部分：
+1. 启发式函数名称，见 heuristic.py
+2. 启发式函数增强类型，mul 表示乘法增强，pow 表示指数增强
+3. 启发式函数增强参数，乘法增强的参数为乘数，指数增强的参数为指数
+
+指数增强会显著增加步数（200+），计算效率似乎没有太大提升
 """
 
 logger_level: Literal['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'] = 'INFO'
@@ -59,7 +66,7 @@ A* 的最大搜索步数，不搜索超过这个步数的状态
 如果设置为非 0 值，建议不要小于 15-puzzle 的最优解步数上限 80
 """
 
-a_star_initial_state: Union[list[list[int]], list[int], int, None] = None
+a_star_initial_state: Union[list[list[int]], list[int], int, None] = [[11,3,1,7],[4,6,8,2],[15,9,10,13],[14,12,5,0]]
 """
 初始状态，可以是一个 4x4 的二维列表（标准格式，0 表示空），一个一维列表（0~15 的排列，15 表示空），或者一个整数（将通过逆康托展开还原为一维列表）
 如果为 None，则从标准输入读取初始状态

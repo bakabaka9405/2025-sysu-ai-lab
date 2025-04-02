@@ -9,6 +9,10 @@ logging.basicConfig(
 logger = logging.getLogger()
 
 fact: list[int] = [1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800, 39916800, 479001600, 6227020800, 87178291200, 1307674368000]
+"""
+预处理阶乘，用于康托展开
+"""
+
 
 def cantor_expansion(s: list[int]) -> int:
 	"""
@@ -38,6 +42,9 @@ def inverse_cantor_expansion(code: int) -> list[int]:
 
 
 def pretty_print_state(state: list[list[int]]) -> None:
+	"""
+	输出一个状态的矩阵
+	"""
 	print('---------------------')
 	for row in state:
 		print('|', end=' ')
