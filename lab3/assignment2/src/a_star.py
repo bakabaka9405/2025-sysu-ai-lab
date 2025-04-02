@@ -1,4 +1,4 @@
-from typing import Union, Optional, Any, cast
+from typing import Union, Optional, cast
 from collections.abc import Callable
 from queue import PriorityQueue, Queue
 import multiprocessing
@@ -60,6 +60,15 @@ def a_star_worker(
 	stop_event: Optional[Event] = None,
 	task_name: str = 'UNKNOWN',
 ) -> Optional[tuple[list[State], list[int]]]:
+	"""
+	A* 算法主函数，由 run_a_star_worker 调用
+
+	:param state: 初始状态
+	:param h_func: 启发式函数
+	:param stop_event: 停止事件
+	:param task_name: 任务名称
+	:return: 状态路径和操作列表
+	"""
 	# 开闭列表
 	pq: PriorityQueue[StateNode] = PriorityQueue()
 	pq.put(StateNode(state, cantor_expansion(state), 0, h_func(state), state.index(15)))
@@ -104,7 +113,13 @@ def a_star_worker(
 
 
 def reconstruct_solution(final_state_id: int, state_from: dict[int, tuple[int, int]]) -> tuple[list[State], list[int]]:
-	"""重建从初始状态到目标状态的路径"""
+	"""
+	重建从初始状态到目标状态的路径
+
+	:param final_state_id: 最终状态 ID
+	:param state_from: 路径追踪表
+	:return: 状态路径和操作列表
+	"""
 	state_path = [final_state_id]
 	operation = []
 	while state_path[-1] in state_from:
@@ -122,7 +137,7 @@ def reconstruct_solution(final_state_id: int, state_from: dict[int, tuple[int, i
 	return sol_state, operation
 
 
-WorkerReturnType = tuple[str, Any, tuple[list[State], list[int]], float]
+WorkerReturnType = tuple[str, float, tuple[list[State], list[int]], float]
 
 
 def run_a_star_worker(
@@ -132,7 +147,17 @@ def run_a_star_worker(
 	h_aug_ratio: float,
 	result_queue: Queue[WorkerReturnType],
 	stop_event: Event,
-):
+) -> None:
+	"""
+	进程工作函数
+
+	:param s: 初始状态
+	:param h_name: 启发式函数名称
+	:param h_aug_type: 启发式函数增强类型
+	:param h_aug_ratio: 启发式函数增强比例
+	:param result_queue: 输出队列
+	:param stop_event: 停止事件
+	"""
 	task_name = f'{h_name}_{h_aug_type}_{h_aug_ratio}'
 	logger.debug(f'进程 {task_name} 已启动')
 
@@ -158,7 +183,7 @@ def run_a_star_worker(
 	logger.debug(f'[{task_name}] 进程结束')
 
 
-def state_solvable(s: list[int]) -> bool:
+def state_solvable(s: FlatState) -> bool:
 	"""
 	判断初始状态是否有解
 	结论：将状态矩阵拍平后计算逆序对个数（空格不算在内），如果奇偶性不同于空格所在行数（从 0 算起）的奇偶性，则有解
@@ -167,6 +192,12 @@ def state_solvable(s: list[int]) -> bool:
 
 
 def A_star(state: Union[State, FlatState]) -> Union[list[State], list[int], tuple[list[State], list[int]], None]:
+	"""
+	A* 入口函数，根据 `config.h_list` 中的启发式函数列表创建多个进程并运行 A* 算法
+
+	:param state: 初始状态，可以是 4x4 矩阵或扁平化的列表
+	:return: 如果找到解决方案，返回状态列表或操作列表（根据 `config.a_star_return_type`），否则返回 None
+	"""
 	s: FlatState
 
 	if len(state) != 16:
