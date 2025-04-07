@@ -10,7 +10,10 @@ from matplotlib import pyplot as plt
 import multiprocessing as mp
 import config
 import mutation
+import crossover
+import time
 from util import hypot, logger
+
 Gene = NDArray[np.int64]
 
 Individual = tuple[Gene, float]
@@ -50,9 +53,9 @@ def crossover_worker(
 class GeneticAlgTSP:
 	cities: NDArray[np.float64]
 	population: list[Individual]
-	crossover: Callable
+	crossover_fn: Callable
 
-	def __init__(self, filename: str, crossover: Callable):
+	def __init__(self, filename: str, crossover_fn: Callable = crossover.order_crossover):
 		# 读取城市坐标
 		lines = open(filename).readlines()
 		start_line = lines.index('NODE_COORD_SECTION\n') + 1
@@ -71,15 +74,17 @@ class GeneticAlgTSP:
 		# 生成初始种群
 		genes = [np.random.permutation(len(self.cities) - 1) for _ in range(config.initial_population_size)]
 		self.population = [(g, self.distance(g)) for g in genes]
-		self.crossover = crossover
+		self.crossover_fn = crossover_fn
 
 	def iterate(self, epochs: int) -> list[int]:
+		start = time.time()
 		for i in range(epochs):
 			logger.debug(f'epoch {i+1}/{epochs} 开始')
 			self.next_generation()
 			if config.output_path_dir:
 				self.plot(self.population[0][0], i + 1)
 			logger.info(f'epoch {i+1}/{epochs} 结束。最短距离 = {self.population[0][1]:.2f}')
+		logger.info(f'总耗时 = {time.time()-start:.2f}秒')
 		return self.population[0][0].tolist() + [(len(self.cities) - 1)]
 
 	def distance(self, path: Union[list[int], NDArray]) -> float:
@@ -105,7 +110,7 @@ class GeneticAlgTSP:
 		results = [
 			pool.apply_async(
 				crossover_worker,
-				(self.population, prob, self.crossover, self.distance, size),
+				(self.population, prob, self.crossover_fn, self.distance, size),
 			)
 			for _ in range(config.num_worker)
 		]
