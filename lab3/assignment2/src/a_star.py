@@ -6,33 +6,8 @@ from threading import Event
 import time
 
 import heuristic
-from util import logger
+from util import logger, state_adj, State, FlatState, CompressedState
 import config
-
-adj: list[list[int]] = [
-	[1, 4],
-	[0, 2, 5],
-	[1, 3, 6],
-	[2, 7],
-	[0, 5, 8],
-	[1, 4, 6, 9],
-	[2, 5, 7, 10],
-	[3, 6, 11],
-	[4, 9, 12],
-	[5, 8, 10, 13],
-	[6, 9, 11, 14],
-	[7, 10, 15],
-	[8, 13],
-	[9, 12, 14],
-	[10, 13, 15],
-	[11, 14],
-]
-
-State = list[list[int]]
-
-FlatState = list[int]
-
-CompressedState = int
 
 
 class StateNode:
@@ -126,7 +101,7 @@ def a_star_worker(
 		if g >= config.a_star_max_steps != 0 and config.a_star_max_steps:
 			continue
 
-		for i in adj[pos]:
+		for i in state_adj[pos]:
 			u_flat[i], u_flat[pos] = u_flat[pos], u_flat[i]
 			v = compress_state(u_flat)
 			if g + 1 < dis.get(v, 1000):
@@ -281,9 +256,9 @@ def A_star(state: Union[State, FlatState]) -> Union[list[State], list[int], tupl
 	logger.info('[MAIN] 所有进程已结束')
 
 	assert solution is not None
-	if config.a_star_return_type == 'state_list':
+	if config.search_return_type == 'state_list':
 		return solution[0]
-	elif config.a_star_return_type == 'operation_list':
+	elif config.search_return_type == 'operation_list':
 		return solution[1]
 	else:
 		return solution
