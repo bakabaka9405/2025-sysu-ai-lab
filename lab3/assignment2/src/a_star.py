@@ -78,16 +78,16 @@ def a_star_worker(
 			return None
 
 		cnt += 1
-		if cnt % config.a_star_log_interval == 0:
+		if cnt % config.search_log_interval == 0:
 			logger.debug(f'[{task_name}] 已探索 {cnt} 个节点，队列大小: {pq.qsize()}')
 
-		if cnt % config.a_star_check_stop_interval == 0 and stop_event.is_set():
+		if cnt % config.search_check_stop_interval == 0 and stop_event.is_set():
 			return None
 
 		u_state = pq.get()
 		u, g, pos = u_state.wrap()
 
-		u_flat = decompress_state(u)
+		u_state = decompress_state(u)
 
 		if u == target_state:
 			logger.debug(f'[{task_name}] 找到目标状态，共探索 {cnt} 个节点，步骤数: {g}')
@@ -97,13 +97,13 @@ def a_star_worker(
 			continue
 
 		for i in state_adj[pos]:
-			u_flat[i], u_flat[pos] = u_flat[pos], u_flat[i]
-			v = compress_state(u_flat)
+			u_state[i], u_state[pos] = 15, u_state[i]
+			v = compress_state(u_state)
 			if g + 1 < dis.get(v, 1000):
-				state_from[v] = u, u_flat[pos]
+				state_from[v] = u, u_state[pos]
 				pq.put(StateNode(v, g + 1, h_func(decompress_state(v)), i))
 				dis[v] = g + 1
-			u_flat[i], u_flat[pos] = u_flat[pos], u_flat[i]
+			u_state[i], u_state[pos] = u_state[pos], 15
 
 	logger.debug(f'[{task_name}] 搜索完毕，未找到解决方案')
 	return None

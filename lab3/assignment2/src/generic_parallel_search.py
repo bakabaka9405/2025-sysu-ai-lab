@@ -51,7 +51,7 @@ def run_handler(
 
 	if result is not None:
 		elapsed = end_time - start_time
-		logger.info(f'[{task_name}] 找到解决方案，用时 {elapsed:.2f} 秒')
+		logger.info(f'[{task_name}] 找到解决方案，用时 {elapsed:.4f} 秒')
 
 		if not stop_event.is_set():
 			result_queue.put((h_name, h_aug_ratio, result, elapsed))
@@ -105,7 +105,7 @@ def generic_parallel_search(
 		first_result = result_queue.get()
 		h_name, h_aug, solution, elapsed = first_result
 		logger.info(f'[{name}] 最先找到解决方案的是: {h_name}_{h_aug}')
-		logger.info(f'[{name}] 耗时: {elapsed:.2f} 秒')
+		logger.info(f'[{name}] 耗时: {elapsed:.4f} 秒')
 		logger.info(f'[{name}] 解的长度: {len(solution[1])} 步')
 	except Exception as e:
 		logger.error(f'[{name}] 获取结果时发生错误: {str(e)}')

@@ -19,50 +19,51 @@ def ida_star_worker(
 	:param task_name: 任务名称
 	:return: 状态路径和操作列表
 	"""
-	found = False
-	stack: list[tuple[FlatState, int]] = []  # (state,last_op)
-	max_depth = config.ida_star_max_depth_increment
 	target_state = list(range(16))
+	if state == target_state:
+		return [restore_state(state)], []
 
-	dfs_cnt = 0
-
-	def ida_star(state: FlatState, g: int, pos: int, last_op: int) -> None:
-		nonlocal found
-		nonlocal dfs_cnt
-		dfs_cnt += 1
-		if stop_event.is_set() or found:
-			if last_op == 0:
-				logger.debug(f'[{task_name}] 搜索被终止：{stop_event.is_set()}, {found}')
-			return
-		stack.append((state, last_op))
-		if state == target_state:
-			found = True
-			logger.info(f'[{task_name}] 找到解决方案')
-			return
-		for v in state_adj[pos]:
-			if state[v] == last_op:
-				continue
-			next_state = state[:]
-			next_state[pos], next_state[v] = next_state[v], next_state[pos]
-			if g + 1 + h_func(next_state) > max_depth or (config.max_solution_length > 0 and g + 1 > config.max_solution_length):
-				continue
-			ida_star(next_state, g + 1, v, state[v])
-			if found:
-				return
-		stack.pop()
-
+	max_depth = config.ida_star_max_depth_increment
+	found = False
 	while True:
-		if stop_event.is_set():
-			return None
-		logger.info(f'[{task_name}] 当前最大搜索步数：{max_depth}')
-		dfs_cnt = 0
-		ida_star(state, 0, state.index(15), -1)
-		logger.debug(f'[{task_name}] 本轮搜索的节点计数：{dfs_cnt}')
+		stack: list[tuple[FlatState, int, int]] = [(state, 0, state.index(15))]  # (state,last_op,pos)
+		adj_idxes = [len(state_adj[state.index(15)]) - 1]
+		cnt = 0
+		g = 0
+		# 手写栈递归
+		while stack:
+			u_state, lst_op, pos = stack[-1]
+			adj_idx = adj_idxes[-1]
+			if adj_idx < 0 or 0 != config.max_solution_length <= g:
+				stack.pop()
+				adj_idxes.pop()
+				g -= 1
+				continue
+			cnt += 1
+			if cnt % config.search_log_interval == 0:
+				logger.debug(f'[{task_name}] 在最大深度 {max_depth} 下已探索 {cnt} 个节点')
+			if cnt % config.search_check_stop_interval == 0 and stop_event.is_set():
+				return None
+			adj_idxes[-1] -= 1
+			v = state_adj[pos][adj_idx]
+			if u_state[v] == lst_op:
+				continue
+			v_state = u_state.copy()
+			v_state[pos], v_state[v] = v_state[v], 15
+			if g + h_func(v_state) > max_depth:
+				continue
+			stack.append((v_state, u_state[v], v))
+			adj_idxes.append(len(state_adj[v]) - 1)
+			g += 1
+			if v_state == target_state:
+				found = True
+				break
 		if stop_event.is_set():
 			return None
 		if found:
+			logger.debug(f'[{task_name}] 找到目标状态，步骤数: {g}')
 			sol = [restore_state(i[0]) for i in stack]
-			sol_op = [i[1] for i in stack][1:]
+			sol_op = [i[1] for i in stack[1:]]
 			return sol, sol_op
 		max_depth += config.ida_star_max_depth_increment
 
