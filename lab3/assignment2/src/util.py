@@ -1,3 +1,4 @@
+from collections.abc import Callable
 import logging
 import config
 
@@ -36,10 +37,20 @@ FlatState = list[int]
 
 CompressedState = int
 
+HeuristicFunc = Callable[[FlatState], int]
+
 fact: list[int] = [1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800, 39916800, 479001600, 6227020800, 87178291200, 1307674368000]
 """
 预处理阶乘，用于康托展开
 """
+
+
+def state_solvable(s: FlatState) -> bool:
+	"""
+	判断初始状态是否有解
+	结论：将状态矩阵拍平后计算逆序对个数（空格不算在内），如果奇偶性不同于空格所在行数（从 0 算起）的奇偶性，则有解
+	"""
+	return (sum([1 for i in range(16) for j in range(i + 1, 16) if s[i] > s[j] and s[i] != 15]) + s.index(15) // 4) % 2 != 0
 
 
 def inverse_cantor_expansion(code: int) -> list[int]:
@@ -53,6 +64,14 @@ def inverse_cantor_expansion(code: int) -> list[int]:
 		res[i] = num.pop(index)
 		code %= fact[15 - i]
 	return res
+
+
+def restore_state(state: FlatState) -> State:
+	"""
+	将 1x16 列表转换为 4x4 矩阵
+	"""
+	s = list(map(lambda x: (x + 1) & 0xF, state))
+	return [s[j * 4 : j * 4 + 4] for j in range(4)]
 
 
 def pretty_print_state(state: list[list[int]]) -> None:
