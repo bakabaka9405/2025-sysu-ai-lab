@@ -6,7 +6,7 @@ from threading import Event
 import time
 
 import heuristic
-from util import cantor_expansion, inverse_cantor_expansion, logger
+from util import logger
 import config
 
 adj: list[list[int]] = [
@@ -32,17 +32,17 @@ State = list[list[int]]
 
 FlatState = list[int]
 
+CompressedState = int
+
 
 class StateNode:
-	state: FlatState
-	state_id: int
+	state: CompressedState
 	g: int
 	h: int
 	pos: int
 
-	def __init__(self, state: FlatState, state_id: int, g: int, h: int, pos: int):
-		self.state = state.copy()
-		self.state_id = state_id
+	def __init__(self, state: CompressedState, g: int, h: int, pos: int):
+		self.state = state
 		self.g = g
 		self.h = h
 		self.pos = pos
@@ -50,8 +50,28 @@ class StateNode:
 	def __lt__(self, other: 'StateNode') -> bool:
 		return self.g + self.h < other.g + other.h
 
-	def wrap(self) -> tuple[FlatState, int, int, int]:
-		return self.state, self.state_id, self.g, self.pos
+	def wrap(self) -> tuple[CompressedState, int, int]:
+		return self.state, self.g, self.pos
+
+
+def compress_state(state: FlatState) -> CompressedState:
+	"""
+	将 1x16 列表转换为压缩状态
+
+	:param state: 1x16 列表
+	:return: 压缩状态
+	"""
+	return sum([state[i] << (i << 2) for i in range(16)])
+
+
+def decompress_state(state: CompressedState) -> FlatState:
+	"""
+	将压缩状态转换为 1x16 列表
+
+	:param state: 压缩状态
+	:return: 1x16 列表
+	"""
+	return [(state >> (i << 2)) & 0b1111 for i in range(16)]
 
 
 def a_star_worker(
@@ -71,12 +91,17 @@ def a_star_worker(
 	"""
 	# 开闭列表
 	pq: PriorityQueue[StateNode] = PriorityQueue()
-	pq.put(StateNode(state, cantor_expansion(state), 0, h_func(state), state.index(15)))
-	dis: dict[int, int] = {cantor_expansion(state): 0}
+	pq.put(StateNode(compress_state(state), 0, h_func(state), state.index(15)))
+	dis: dict[int, int] = {compress_state(state): 0}
+
 	# 路径追踪
 	state_from: dict[int, tuple[int, int]] = {}
 
-	cnt = 0
+	# 计算目标状态
+	target_state = compress_state(list(range(16)))
+
+	cnt = 0  # 探索节点计数
+
 	while not pq.empty():
 		if stop_event is not None and stop_event.is_set():
 			logger.debug(f'[{task_name}] 收到停止信号，终止搜索')
@@ -90,29 +115,34 @@ def a_star_worker(
 			return None
 
 		u_state = pq.get()
-		u, uid, g, pos = u_state.wrap()
+		u, g, pos = u_state.wrap()
 
-		if uid == 0:
+		u_flat = decompress_state(u)
+
+		if u == target_state:
 			logger.debug(f'[{task_name}] 找到目标状态，共探索 {cnt} 个节点，步骤数: {g}')
-			return reconstruct_solution(uid, state_from)
+			return reconstruct_solution(u, state_from)
 
 		if g >= config.a_star_max_steps != 0 and config.a_star_max_steps:
 			continue
 
 		for i in adj[pos]:
-			u[i], u[pos] = u[pos], u[i]
-			vid = cantor_expansion(u)
-			if g + 1 < dis.get(vid, 1000):
-				state_from[vid] = uid, u[pos]
-				pq.put(StateNode(u, vid, g + 1, h_func(u), i))
-				dis[vid] = g + 1
-			u[i], u[pos] = u[pos], u[i]
+			u_flat[i], u_flat[pos] = u_flat[pos], u_flat[i]
+			v = compress_state(u_flat)
+			if g + 1 < dis.get(v, 1000):
+				state_from[v] = u, u_flat[pos]
+				pq.put(StateNode(v, g + 1, h_func(decompress_state(v)), i))
+				dis[v] = g + 1
+			u_flat[i], u_flat[pos] = u_flat[pos], u_flat[i]
 
 	logger.debug(f'[{task_name}] 搜索完毕，未找到解决方案')
 	return None
 
 
-def reconstruct_solution(final_state_id: int, state_from: dict[int, tuple[int, int]]) -> tuple[list[State], list[int]]:
+def reconstruct_solution(
+	final_state: CompressedState,
+	state_from: dict[int, tuple[int, int]],
+) -> tuple[list[State], list[int]]:
 	"""
 	重建从初始状态到目标状态的路径
 
@@ -120,17 +150,21 @@ def reconstruct_solution(final_state_id: int, state_from: dict[int, tuple[int, i
 	:param state_from: 路径追踪表
 	:return: 状态路径和操作列表
 	"""
-	state_path = [final_state_id]
+
+	state_path = [final_state]
 	operation = []
+
 	while state_path[-1] in state_from:
 		operation.append(state_from[state_path[-1]][1])
 		state_path.append(state_from[state_path[-1]][0])
+
 	state_path.reverse()
 	operation.reverse()
 
 	sol_state: list[State] = []
-	for state_id in state_path:
-		s = list(map(lambda x: (x + 1) & 0xF, inverse_cantor_expansion(state_id)))
+
+	for state in state_path:
+		s = list(map(lambda x: (x + 1) & 0xF, decompress_state(state)))
 		matrix = [s[j * 4 : j * 4 + 4] for j in range(4)]
 		sol_state.append(matrix)
 

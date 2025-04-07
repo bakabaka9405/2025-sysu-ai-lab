@@ -13,21 +13,6 @@ fact: list[int] = [1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800, 39916
 预处理阶乘，用于康托展开
 """
 
-
-def cantor_expansion(s: list[int]) -> int:
-	"""
-	用康托展开计算当前状态的编号
-	"""
-	rank = 0
-	for i in range(16):
-		cnt = 0
-		for j in range(i + 1, 16):
-			if s[j] < s[i]:
-				cnt += 1
-		rank += cnt * fact[15 - i]
-	return rank
-
-
 def inverse_cantor_expansion(code: int) -> list[int]:
 	"""
 	逆康托展开
