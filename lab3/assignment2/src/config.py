@@ -73,7 +73,7 @@ ida_star_max_depth_increment: int = 40
 IDA* 每轮最大搜索期望步数（f 值）的增量
 """
 
-max_solution_length: int = 0
+max_solution_length: int = 80
 """
 最大答案步数（g 值）限制
 如果设置为 0，则不限制步数

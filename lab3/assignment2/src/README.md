@@ -3,11 +3,13 @@
 ## 项目结构
 
 ```
-├── main.py               # 主程序
-├── a_star.py             # A* 算法模块
-├── heuristic.py          # 启发式函数模块
-├── util.py               # 实用函数
-└── config.py             # 配置文件
+├── main.py                       # 主程序
+├── a_star.py                     # A* 算法模块
+├── ida_star.py                   # IDA* 算法模块
+├── generic_parallel_search.py    # 通用并行搜索模块
+├── heuristic.py                  # 启发式函数模块
+├── util.py                       # 实用函数
+└── config.py                     # 配置文件
 ```
 
 ## 环境要求
@@ -33,3 +35,5 @@ python .\main.py
 13 14 15 0
 ```
 否则，`a_star_initial_state`若为一个二维数组，则不需要从控制台输入，直接将其作为参数传入 A* 算法
+
+要切换到 IDA* 算法，只需将配置文件中`algorithm`的值改为`ida_star`即可
