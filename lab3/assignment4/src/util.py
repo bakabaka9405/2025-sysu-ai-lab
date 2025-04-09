@@ -32,30 +32,19 @@ def set_random_seed(seed: int) -> None:
 	np.random.seed(seed)
 
 
-def euclidean(x: NDArray[np.float64], y: NDArray[np.float64]) -> float:
-	return np.sqrt(np.sum(np.square(x - y)))
-
-
 def create_output_dir(path: str) -> None:
 	if not os.path.exists(path):
 		os.makedirs(path)
 
 
-def path_distance(cities, path) -> float:
-	return (
-		sum(
-			euclidean(
-				cities[path[i]],
-				cities[path[i + 1]],
-			)
-			for i in range(len(cities) - 2)
-		)
-		+ euclidean(cities[path[-1]], cities[-1])
-		+ euclidean(cities[-1], cities[path[0]])
-	)
+def path_distance(cities: NDArray, path: NDArray) -> float:
+	tail = len(cities) - 1
+	a = np.append(path, [tail], axis=-1)
+	b = np.append(path[1:], [tail, path[0]], axis=-1)
+	return np.sum(np.sqrt(np.sum((cities[a] - cities[b]) ** 2, axis=1)))
 
 
-def plot_path(cities: NDArray, path: Union[list[int], NDArray], epoch: int):
+def plot_path(cities: NDArray, path: NDArray, epoch: int):
 	"""
 	绘制路径图像并保存到指定目录。
 	:param path: 城市路径

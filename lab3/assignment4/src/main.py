@@ -12,7 +12,7 @@ def main():
 
 	ga = GeneticAlgTSP.GeneticAlgTSP(config.input_path)
 
-	res = ga.iterate(500)
+	res = ga.iterate(1000)
 
 	print(res)
 

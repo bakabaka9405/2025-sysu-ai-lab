@@ -41,6 +41,7 @@ class GeneticAlgTSP:
 		# 生成初始种群
 		logger.debug('正在生成初始种群...')
 		genes = [np.random.permutation(len(self.cities) - 1) for _ in range(config.initial_population_size)]
+		logger.debug('正在计算初始种群的适应度...')
 		self.population = [(g, path_distance(self.cities, g)) for g in genes]
 		self.crossover_fn = crossover.__dict__[config.crossover_policy]
 		self.fitness_transform_fn = fitness_transform.__dict__[config.fitness_transform_policy]
