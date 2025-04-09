@@ -59,6 +59,7 @@ mutation_policy: Literal[
 	'swap_mutation',
 	'range_swap_mutation',
 	'reverse_mutation',
+	'rorate_mutation',
 	'shuffle_mutation',
 	'random_mutation',
 ] = 'random_mutation'
@@ -67,6 +68,7 @@ mutation_policy: Literal[
 - swap_mutation: 随机选取两个顺序编码交换
 - range_swap_mutation: 随机选取两段顺序编码交换
 - reverse_mutation: 随机选取一段编码反转
+- rorate_mutation: 随机选取一段编码循环移动
 - shuffle_mutation: 随机选取一段编码随机打乱
 - random_mutation: 每次随机选取以上几种变异的一种
 """
@@ -82,7 +84,7 @@ input_path: str = 'lab3/assignment4/data/qa194.tsp'
 输入文件路径
 """
 
-output_path_dir: Optional[str] = 'C:/Temp/lab3/test/1'
+output_path_dir: Optional[str] = 'C:/Temp/lab3/qa194/2'
 """
 输出文件路径
 如果为 None，则表示不输出任何文件。

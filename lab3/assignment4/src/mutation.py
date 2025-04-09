@@ -22,6 +22,11 @@ def reverse_mutation(gene: NDArray) -> None:
 	gene[p1:p2] = gene[p1:p2][::-1]
 
 
+def rorate_mutation(gene: NDArray) -> None:
+	p1, p2 = sorted(np.random.choice(len(gene), size=2, replace=False))
+	gene[p1:p2] = np.roll(gene[p1:p2], shift=1)
+
+
 def shuffle_mutation(gene: NDArray) -> None:
 	size = len(gene)
 	p1, p2 = np.random.choice(size, size=2, replace=False)
@@ -29,8 +34,8 @@ def shuffle_mutation(gene: NDArray) -> None:
 
 
 def random_mutation(gene: NDArray) -> None:
-	mut = [swap_mutation, range_swap_mutation, reverse_mutation, shuffle_mutation]
-	mut[np.random.randint(0, 4)](gene)
+	mut = [swap_mutation, range_swap_mutation, reverse_mutation, rorate_mutation, shuffle_mutation]
+	mut[np.random.randint(0, 5)](gene)
 
 
 if __name__ == '__main__':
