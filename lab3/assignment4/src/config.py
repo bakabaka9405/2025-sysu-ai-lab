@@ -13,13 +13,13 @@ initial_population_size: int = 10000
 使用 numpy 的 permutation 函数生成初始种群。
 """
 
-maximum_population_size: int = 30000
+maximum_population_size: int = 20000
 """
 最大种群大小。
 如果某个 epoch 过后种群大小超过这个值，则保留最优的前 maximum_population_size 个个体。
 """
 
-cross_per_epoch: int = 30000
+cross_per_epoch: int = 20000
 """
 每个 epoch 进行交叉的次数。
 最多产生 2*cross_per_epoch 个子代。
@@ -61,7 +61,7 @@ mutation_policy: Literal[
 	'reverse_mutation',
 	'shuffle_mutation',
 	'random_mutation',
-] = 'swap_mutation'
+] = 'random_mutation'
 """
 变异方式。
 - swap_mutation: 随机选取两个顺序编码交换
@@ -71,7 +71,7 @@ mutation_policy: Literal[
 - random_mutation: 每次随机选取以上几种变异的一种
 """
 
-num_worker: int = 20
+num_worker: int = 12
 """
 进行交叉操作创建的进程数
 每个进程进行 ceil(cross_per_epoch/num_worker) 次交叉操作
@@ -82,7 +82,7 @@ input_path: str = 'lab3/assignment4/data/qa194.tsp'
 输入文件路径
 """
 
-output_path_dir: Optional[str] = 'C:/Temp/lab3/qa194/4'
+output_path_dir: Optional[str] = 'C:/Temp/lab3/test/1'
 """
 输出文件路径
 如果为 None，则表示不输出任何文件。
