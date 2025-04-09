@@ -1,6 +1,5 @@
 import config
 import util
-import crossover
 import GeneticAlgTSP
 
 
@@ -11,9 +10,9 @@ def main():
 	if config.output_path_dir is not None:
 		util.create_output_dir(config.output_path_dir)
 
-	ga = GeneticAlgTSP.GeneticAlgTSP(config.input_path, crossover.__dict__[config.crossover])
+	ga = GeneticAlgTSP.GeneticAlgTSP(config.input_path)
 
-	res = ga.iterate(10)
+	res = ga.iterate(500)
 
 	print(res)
 

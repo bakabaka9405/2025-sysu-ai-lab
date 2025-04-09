@@ -2,41 +2,40 @@ from typing import Union
 from collections.abc import Callable
 import numpy as np
 from numpy.typing import NDArray
-from math import sqrt
 import matplotlib
 
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 import multiprocessing as mp
+import time
 import config
 import mutation
 import crossover
-import time
-from util import hypot, logger
-
-Gene = NDArray[np.int64]
-
-Individual = tuple[Gene, float]
-
-
-plt.rc('font', family='SimSun')
+import selection
+import fitness_transform
+from util import euclidean, logger, Gene, Individual
+import gc
 
 
 def crossover_worker(
 	population: list[Individual],
-	prob: list[float],
+	selector: selection.SelectionBase,
 	crossover: Callable[[Gene, Gene], tuple[Gene, Gene]],
 	distance: Callable[[Gene], float],
 	size: int,
 ) -> list[Individual]:
 	new_population: list[Individual] = []
 	dis_threshold = population[-1][1]
-	mutation_func = mutation.__dict__[config.mutation]
+	mutation_func = mutation.__dict__[config.mutation_policy]
 	for _ in range(size):
-		p1: int
-		p2: int
-		p1, p2 = np.random.choice(range(len(population)), size=2, replace=False, p=prob)
+		p1, p2 = selector()
 		parent1, parent2 = population[p1][0], population[p2][0]
+		if np.random.rand() < config.mutation_prob:
+			mutation_func(parent1)
+		if np.random.rand() < config.mutation_prob:
+			mutation_func(parent2)
+		if (parent1 == parent2).all() and np.random.rand() < config.homozygous_lethality:
+			continue
 		child1, child2 = crossover(parent1, parent2)
 		if np.random.rand() < config.mutation_prob:
 			mutation_func(child1)
@@ -54,8 +53,10 @@ class GeneticAlgTSP:
 	cities: NDArray[np.float64]
 	population: list[Individual]
 	crossover_fn: Callable
+	fitness_transform_fn: Callable
+	selection_fn: Callable
 
-	def __init__(self, filename: str, crossover_fn: Callable = crossover.order_crossover):
+	def __init__(self, filename: str):
 		# 读取城市坐标
 		lines = open(filename).readlines()
 		start_line = lines.index('NODE_COORD_SECTION\n') + 1
@@ -74,7 +75,9 @@ class GeneticAlgTSP:
 		# 生成初始种群
 		genes = [np.random.permutation(len(self.cities) - 1) for _ in range(config.initial_population_size)]
 		self.population = [(g, self.distance(g)) for g in genes]
-		self.crossover_fn = crossover_fn
+		self.crossover_fn = crossover.__dict__[config.crossover_policy]
+		self.fitness_transform_fn = fitness_transform.__dict__[config.fitness_transform_policy]
+		self.selection_fn = selection.__dict__[config.selection_policy]
 
 	def iterate(self, epochs: int) -> list[int]:
 		start = time.time()
@@ -84,33 +87,37 @@ class GeneticAlgTSP:
 			if config.output_path_dir:
 				self.plot(self.population[0][0], i + 1)
 			logger.info(f'epoch {i+1}/{epochs} 结束。最短距离 = {self.population[0][1]:.2f}')
+			gc.collect()
 		logger.info(f'总耗时 = {time.time()-start:.2f}秒')
 		return self.population[0][0].tolist() + [(len(self.cities) - 1)]
 
 	def distance(self, path: Union[list[int], NDArray]) -> float:
 		return (
 			sum(
-				hypot(
+				euclidean(
 					self.cities[path[i]],
 					self.cities[path[i + 1]],
 				)
 				for i in range(len(self.cities) - 2)
 			)
-			+ hypot(self.cities[path[-1]], self.cities[-1])
-			+ hypot(self.cities[-1], self.cities[path[0]])
+			+ euclidean(self.cities[path[-1]], self.cities[-1])
+			+ euclidean(self.cities[-1], self.cities[path[0]])
 		)
 
 	def next_generation(self) -> None:
 		new_population = self.population[:]
-		prob = np.array([sqrt(1 / p[1]) for p in self.population])
-		prob /= prob.sum()
 		size = (config.cross_per_epoch + config.num_worker - 1) // config.num_worker
+		logger.debug(f'每个进程处理 {size} 个交叉操作')
 		pool = mp.Pool(config.num_worker)
 		logger.debug('正在创建进程...')
+
+		fitness = np.array([p[1] for p in self.population])
+		transform_fn = fitness_transform.__dict__[config.fitness_transform_policy]
+		selector: Callable[[], tuple[int, int]] = selection.__dict__[config.selection_policy](fitness, transform_fn)
 		results = [
 			pool.apply_async(
 				crossover_worker,
-				(self.population, prob, self.crossover_fn, self.distance, size),
+				(self.population, selector, self.crossover_fn, self.distance, size),
 			)
 			for _ in range(config.num_worker)
 		]
