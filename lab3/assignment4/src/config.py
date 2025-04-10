@@ -40,16 +40,18 @@ selection_policy: Literal['RouletteWheel', 'Tournament'] = 'RouletteWheel'
 选择策略，实现了轮盘赌和锦标赛两种策略
 """
 
-mutation_prob = 0.05
+base_mutation_prob = 0.01
 """
-变异概率。
+基础变异概率。
 每个个体有 mutation_prob 的概率进行变异。
+当长时间没有找到更优解时，变异概率会逐渐增加。
 """
 
 homozygous_lethality: float = 0.95
 """
 纯合子致死率。
-如果两个父代的基因相同，则有一定概率的概率直接死亡。
+如果两个父代的基因相同，则后代有一定概率的概率直接死亡。
+较大时能够提升种群多样性，较小时能够提升收敛速度。
 """
 
 crossover_policy: Literal['partial_mapping_crossover', 'order_crossover', 'position_based_crossover'] = 'order_crossover'
@@ -73,11 +75,13 @@ mutation_policy: Literal[
 """
 变异方式。
 - swap_mutation: 随机选取两个顺序编码交换
+- adjacent_swap_mutation: 随机选取两个相邻顺序编码交换
 - range_swap_mutation: 随机选取两段顺序编码交换
 - reverse_mutation: 随机选取一段编码反转
 - rorate_mutation: 随机选取一段编码循环移动
 - shuffle_mutation: 随机选取一段编码随机打乱
 - random_mutation: 每次随机选取以上几种变异的一种
+- random_mutation_1: 不知道扔掉一点垃圾变异能不能提高性能
 """
 
 num_worker: int = 8
@@ -86,18 +90,26 @@ num_worker: int = 8
 每个进程进行 ceil(cross_per_epoch/num_worker) 次交叉操作
 """
 
+worker_data_copy_threshold: int = 1000 * 10000 * 8
+"""
+虽然 population_data 是通过共享内存传递的，但直接读共享内存的延迟有亿点大，所以在数据小的时候一般将其复制到进程独立内存
+数据量大且设置进程太多时会爆内存
+设置一个上界（单条基因点数 * 基因数 * 进程数）决定是否复制
+设为 0 即总使用共享内存
+"""
+
 input_path: str = 'lab3/assignment4/data/qa194.tsp'
 """
 输入文件路径
 """
 
-output_path_dir: Optional[str] = 'C:/Temp/lab3/qa194/5'
+output_path_dir: Optional[str] = 'C:/Temp/lab3/test/1'
 """
 输出文件路径
 如果为 None，则表示不输出任何文件。
 """
 
-logger_level: Literal['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'] = 'DEBUG'
+console_logger_level: Literal['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'] = 'DEBUG'
 """
 logger 的输出级别
 设置为 'DEBUG' 输出最多信息

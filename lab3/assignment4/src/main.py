@@ -8,7 +8,7 @@ def main():
 		util.set_random_seed(config.seed)
 
 	if config.output_path_dir:
-		util.create_output_dir(config.output_path_dir)
+		util.prepare_output_dir(config.output_path_dir)
 
 	ga = GeneticAlgTSP.GeneticAlgTSP(config.input_path)
 

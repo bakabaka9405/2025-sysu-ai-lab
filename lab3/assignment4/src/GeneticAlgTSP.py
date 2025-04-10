@@ -6,8 +6,9 @@ import time
 import config
 import crossover
 import selection
+from selection import Selector
 import fitness_transform
-from util import logger, Individual, path_distance, plot_path
+from util import logger, Individual, path_distance, plot_path, log_basic_info
 from worker import parallel_crossover_worker
 
 
@@ -24,6 +25,7 @@ class GeneticAlgTSP:
 	workers: list[mp.Process]
 
 	def __init__(self, filename: str):
+		log_basic_info()
 		# 读取城市坐标
 		lines = open(filename).readlines()
 		start_line = lines.index('NODE_COORD_SECTION\n') + 1
@@ -37,7 +39,7 @@ class GeneticAlgTSP:
 
 		self.cities = np.array([list(map(float, reversed(line.split()[1:]))) for line in lines[start_line:end_line]])
 
-		# 对基因进行优化：观察到 TSP 的最优解与起点无关，因此可以将起点固定为最后一个城市。
+		# 对基因进行优化：观察到 TSP 的最优解与起点无关，因此可以将固定某一个城市为路径的起点或终点
 		# 使得基因长度 -1，当然后续的计算代码也要相应修改。
 		# 生成初始种群
 		logger.debug('正在生成初始种群...')
@@ -87,7 +89,7 @@ class GeneticAlgTSP:
 		logger.debug('正在停止工作进程...')
 
 		for task_queue in self.task_queues:
-			task_queue.put(None)  # 发送退出信号
+			task_queue.put((None, None))  # 发送退出信号
 
 		for worker in self.workers:
 			worker.join(timeout=1.0)
@@ -97,16 +99,18 @@ class GeneticAlgTSP:
 	def iterate(self, epochs: int) -> list[int]:
 		start = time.time()
 		last_best_distance = float('inf')
+		best_count = 0
 		self.start_workers()
 		for i in range(epochs):
 			epoch_start = time.time()
 			logger.debug(f'epoch {i+1}/{epochs} 开始')
 
-			self.next_generation()
+			self.next_generation(best_count)
 
 			if config.output_path_dir:
 				plot_path(self.cities, self.population[0][0], i + 1)
 			delta = 0 if last_best_distance == float('inf') else last_best_distance - self.population[0][1]
+			best_count = 0 if delta == 0 else best_count + 1
 			logger.info(f'epoch {i+1}/{epochs} 结束，用时 {time.time()-epoch_start:.2f} 秒，最短距离 = {self.population[0][1]:.2f} (-{delta:.2f})')
 			last_best_distance = self.population[0][1]
 
@@ -115,12 +119,12 @@ class GeneticAlgTSP:
 
 		return self.population[0][0].tolist() + [len(self.cities) - 1]
 
-	def next_generation(self) -> None:
+	def next_generation(self, best_count: int) -> None:
 		new_population = self.population[:]
 
 		# 准备选择器
 		fitness = np.array([p[1] for p in self.population])
-		selector = self.selection_fn(fitness, self.fitness_transform_fn)
+		selector: Selector = self.selection_fn(len(fitness), fitness=fitness, transform=self.fitness_transform_fn)
 
 		# 更新共享内存中的种群数据
 		self.shared_population[:] = self.population
@@ -128,14 +132,20 @@ class GeneticAlgTSP:
 		# 分发任务给所有工作进程
 		logger.debug('分发任务给工作进程...')
 		for task_queue in self.task_queues:
-			task_queue.put((selector, self.task_cross_count))
+			task_queue.put(
+				(
+					selector,
+					config.base_mutation_prob + best_count * 0.1,
+					len(fitness) * (len(self.cities) - 1) * len(self.workers) <= config.worker_data_copy_threshold,
+				)
+			)
 
 		# 收集结果
 		logger.debug('等待结果中...')
 		results_count = 0
 		try:
 			while results_count < config.num_worker:
-				result = self.result_queue.get(timeout=3600)  # 设置超时，防止无限等待
+				result = self.result_queue.get(timeout=3600)
 				new_population += result
 				results_count += 1
 		except Exception as e:

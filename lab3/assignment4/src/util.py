@@ -1,4 +1,3 @@
-from typing import Union
 import random
 import numpy as np
 from numpy.typing import NDArray
@@ -11,21 +10,12 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 logger = logging.getLogger('TSP')
-logger.setLevel(config.logger_level)
 
 logging.basicConfig(
-	level=config.logger_level,
+	level=config.console_logger_level,
 	format='[%(asctime)s] [%(process)d] [%(levelname)s] %(message)s',
 	datefmt='%H:%M:%S',
 )
-
-if config.output_path_dir and config.log_to_file:
-	fh = logging.FileHandler(f'{config.output_path_dir}/log.txt', mode='w', encoding='utf-8')
-	fh.setLevel(config.logger_level)
-	formatter = logging.Formatter('[%(asctime)s] [%(process)d] [%(levelname)s] %(message)s', datefmt='%H:%M:%S')
-	fh.setFormatter(formatter)
-	logger.addHandler(fh)
-
 
 mat_logger = logging.getLogger('matplotlib')
 mat_logger.setLevel(logging.ERROR)
@@ -42,9 +32,35 @@ def set_random_seed(seed: int) -> None:
 	np.random.seed(seed)
 
 
-def create_output_dir(path: str) -> None:
+def log_basic_info() -> None:
+	"""
+	输出 config.py 中的基本参数配置
+	"""
+	logger.info(f'输入文件路径: {config.input_path}')
+	if config.output_path_dir:
+		logger.info(f'输出文件路径: {config.output_path_dir}')
+	logger.info(f'随机种子: {config.seed}')
+	logger.info(f'工作进程数: {config.num_worker}')
+	logger.info(f'初始种群大小: {config.initial_population_size}')
+	logger.info(f'最大种群大小: {config.maximum_population_size}')
+	logger.info(f'每轮交叉次数： {config.cross_per_epoch}')
+	logger.info(f'交叉方式: {config.crossover_policy}')
+	logger.info(f'变异方式: {config.mutation_policy}')
+	logger.info(f'基础变异概率: {config.base_mutation_prob}')
+	logger.info(f'纯合子致死率: {config.homozygous_lethality}')
+	logger.info(f'距离映射方式: {config.fitness_transform_policy}')
+	logger.info(f'选择策略： {config.selection_policy}')
+
+
+def prepare_output_dir(path: str) -> None:
 	if not os.path.exists(path):
 		os.makedirs(path)
+	if config.output_path_dir and config.log_to_file:
+		fh = logging.FileHandler(f'{config.output_path_dir}/log.txt', mode='w', encoding='utf-8')
+		fh.setLevel(logging.INFO)
+		formatter = logging.Formatter('[%(asctime)s] [%(process)d] [%(levelname)s] %(message)s', datefmt='%H:%M:%S')
+		fh.setFormatter(formatter)
+		logger.addHandler(fh)
 
 
 def path_distance(cities: NDArray, path: NDArray) -> float:

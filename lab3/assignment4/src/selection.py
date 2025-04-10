@@ -1,53 +1,58 @@
 import numpy as np
 from numpy.typing import NDArray
-from collections.abc import Callable
 
 
-class SelectionBase:
-	fitness: NDArray[np.float64]
-	transform: Callable[[NDArray[np.float64]], NDArray[np.float64]]
+class Selector:
 	size: int
 
-	def __init__(self, fitness: NDArray[np.float64], transform: Callable[[NDArray[np.float64]], NDArray[np.float64]]):
-		self.fitness = fitness
-		self.transform = transform
-		self.size = len(fitness)
+	def __init__(
+		self,
+		size: int,
+		**_kwargs,
+	) -> None:
+		self.size = size
 
-	def __call__(self) -> tuple[int, int]:
+	def __call__(self, _count: int) -> NDArray:
 		raise NotImplementedError('Subclasses must implement __call__ method')
 
 
-class RouletteWheel(SelectionBase):
+class RouletteWheel(Selector):
 	prob: NDArray[np.float64]
 
 	def __init__(
 		self,
-		fitness: NDArray[np.float64],
-		transform: Callable[[NDArray[np.float64]], NDArray[np.float64]],
+		size: int,
+		**kwargs,
 	) -> None:
-		super().__init__(fitness, transform)
-		self.prob = transform(fitness)
+		super().__init__(size)
+		self.prob = kwargs['transform']((kwargs['fitness']))
 		self.prob /= self.prob.sum()
 
-	def __call__(self) -> tuple[int, int]:
-		a, b = np.random.choice(self.size, size=2, p=self.prob)
-		return a, b
+	def __call__(self, count: int) -> NDArray:
+		return np.random.choice(self.size, size=(count, 2), p=self.prob)
 
 
-class Tournament(SelectionBase):
+class Tournament(Selector):
 	tournament_size: int
 
 	def __init__(
 		self,
-		fitness: NDArray[np.float64],
-		transform: Callable[[NDArray[np.float64]], NDArray[np.float64]],
-		tournament_size: int = 2,
+		size: int,
+		**kwargs,
 	) -> None:
-		super().__init__(fitness, transform)
-		self.tournament_size = tournament_size
+		super().__init__(size)
+		self.tournament_size = kwargs['tournament_size']
 
-	def __call__(self) -> tuple[int, int]:
-		stage_1 = np.random.choice(self.size, size=self.tournament_size)
-		a = stage_1[np.argmax(self.fitness[stage_1])]
-		b = stage_1[np.argmin(self.fitness[stage_1])]
-		return a, b
+	def __call__(self, count: int) -> NDArray:
+		"""
+		针对性优化：因为每轮结束都要对 Individual 基于 fitness 排序，因此下标小的 Individual 适应度必定更高。
+		第一轮的 fitness 是随机的，但是第一轮就无所谓了。
+		可以省下存 fitness 的空间
+		"""
+		rnd = np.random.randint(0, self.size, size=(count * 2, self.tournament_size))
+		return np.min(rnd, axis=1).reshape(count, 2)
+
+
+if __name__ == '__main__':
+	tournament = Tournament(10, tournament_size=5)
+	print(tournament(5))
