@@ -5,3 +5,6 @@ line-length = 150
 quote-style = "single"
 indent-style = "tab"
 docstring-code-format = true
+
+[tool.ruff.lint]
+ignore = ["E731"]
