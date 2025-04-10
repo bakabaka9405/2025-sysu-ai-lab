@@ -1,3 +1,4 @@
+from typing import Optional
 import numpy as np
 from numpy.typing import NDArray
 import multiprocessing as mp
@@ -5,14 +6,15 @@ import multiprocessing as mp
 import config
 import mutation
 import crossover
-from util import logger, path_distance
+from util import logger, path_distance, Individual
 
 
-def parallel_crossover_worker(task_queue: mp.Queue, result_queue: mp.Queue, population_array, cities: NDArray[np.float64]):
+def parallel_crossover_worker(pid: int, task_queue: mp.Queue, result_queue: mp.Queue, population_array, cities: NDArray[np.float64], task_size: int):
 	"""
 	持续运行的工作进程，通过队列接收任务并返回结果
 
 	Args:
+		id: 进程 ID
 	    task_queue: 任务队列，接收开始信号和参数
 	    result_queue: 结果队列，发送生成的新个体
 	    population_array: 共享内存中的种群数据
@@ -23,6 +25,7 @@ def parallel_crossover_worker(task_queue: mp.Queue, result_queue: mp.Queue, popu
 	crossover_function = crossover.__dict__[config.crossover_policy]
 	mutation_function = mutation.__dict__[config.mutation_policy]
 
+	buffer: list[Optional[Individual]] = [None] * (task_size * 2)
 	while True:
 		try:
 			# 等待任务
@@ -30,8 +33,9 @@ def parallel_crossover_worker(task_queue: mp.Queue, result_queue: mp.Queue, popu
 			if task is None:  # 退出信号
 				break
 
+			# logger.debug(f'Worker {id} 接收到任务')
 			selector, size = task
-			new_population = []
+			buffer_size = 0
 
 			# 读取种群数据
 			population_data = population_array[:]
@@ -67,12 +71,14 @@ def parallel_crossover_worker(task_queue: mp.Queue, result_queue: mp.Queue, popu
 				dis1, dis2 = path_distance(cities, child1), path_distance(cities, child2)
 
 				if dis1 < dis_threshold:
-					new_population.append((child1, dis1))
+					buffer[buffer_size] = (child1, dis1)
+					buffer_size += 1
 				if dis2 < dis_threshold:
-					new_population.append((child2, dis2))
+					buffer[buffer_size] = (child1, dis1)
+					buffer_size += 1
 
 			# 将结果放入结果队列
-			result_queue.put(new_population)
+			result_queue.put(buffer[:buffer_size])
 
 		except Exception as e:
 			logger.error(f'Worker进程出错: {e}')

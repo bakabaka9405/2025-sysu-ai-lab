@@ -17,6 +17,7 @@ class GeneticAlgTSP:
 	crossover_fn: Callable
 	fitness_transform_fn: Callable
 	selection_fn: Callable
+	task_cross_count: int
 	task_queues: list[mp.Queue]
 	result_queue: mp.Queue
 	# shared_population: ListProxy[Individual]
@@ -51,24 +52,28 @@ class GeneticAlgTSP:
 		self.task_queues = []
 		self.result_queue = mp.Queue()
 		self.workers = []
-
+		self.task_cross_count = (config.cross_per_epoch + config.num_worker - 1) // config.num_worker
 		self.manager = mp.Manager()
 		self.shared_population = self.manager.list(self.population)
+
+		logger.debug(f'每个进程处理 {self.task_cross_count} 个交叉操作')
 
 	def start_workers(self):
 		logger.debug(f'正在创建 {config.num_worker} 个工作进程...')
 
-		for _ in range(config.num_worker):
+		for i in range(config.num_worker):
 			task_queue = mp.Queue()
 			self.task_queues.append(task_queue)
 
 			worker = mp.Process(
 				target=parallel_crossover_worker,
 				args=(
+					i,
 					task_queue,
 					self.result_queue,
 					self.shared_population,
 					self.cities,
+					self.task_cross_count,
 				),
 				daemon=True,
 			)
@@ -112,8 +117,6 @@ class GeneticAlgTSP:
 
 	def next_generation(self) -> None:
 		new_population = self.population[:]
-		size = (config.cross_per_epoch + config.num_worker - 1) // config.num_worker
-		logger.debug(f'每个进程处理 {size} 个交叉操作')
 
 		# 准备选择器
 		fitness = np.array([p[1] for p in self.population])
@@ -125,7 +128,7 @@ class GeneticAlgTSP:
 		# 分发任务给所有工作进程
 		logger.debug('分发任务给工作进程...')
 		for task_queue in self.task_queues:
-			task_queue.put((selector, size))
+			task_queue.put((selector, self.task_cross_count))
 
 		# 收集结果
 		logger.debug('等待结果中...')
