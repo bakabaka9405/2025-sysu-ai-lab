@@ -45,24 +45,19 @@ def partial_mapping_crossover(a: NDArray, b: NDArray) -> tuple[NDArray, NDArray]
 
 def order_crossover(a: NDArray, b: NDArray) -> tuple[NDArray, NDArray]:
 	size = len(a)
-	cxpoint1, cxpoint2 = sorted(np.random.choice(size, 2, replace=False))
-	child1, child2 = np.zeros(size, dtype=int), np.zeros(size, dtype=int)
+	cxpoint1, cxpoint2 = sorted(np.random.choice(size + 1, 2, replace=False))
+	mask1, mask2 = np.ones(size, dtype=bool), np.ones(size, dtype=bool)
 
-	child1[cxpoint1:cxpoint2] = a[cxpoint1:cxpoint2]
-	child2[cxpoint1:cxpoint2] = b[cxpoint1:cxpoint2]
+	mask1[b[cxpoint1:cxpoint2]] = False
+	mask2[a[cxpoint1:cxpoint2]] = False
 
-	s1 = set(child1[cxpoint1:cxpoint2])
-	s2 = set(child2[cxpoint1:cxpoint2])
+	remaining1 = a[np.where(mask1[a])[0]]
+	remaining2 = b[np.where(mask2[b])[0]]
 
-	ra = np.array([i for i in b if i not in s1])
-	rb = np.array([i for i in a if i not in s2])
-
-	child1[:cxpoint1] = ra[:cxpoint1]
-	child1[cxpoint2:] = ra[cxpoint1:]
-	child2[:cxpoint1] = rb[:cxpoint1]
-	child2[cxpoint2:] = rb[cxpoint1:]
-
-	return child1, child2
+	return (
+		np.concatenate((remaining1[:cxpoint1], b[cxpoint1:cxpoint2], remaining1[cxpoint1:])),
+		np.concatenate((remaining2[:cxpoint1], a[cxpoint1:cxpoint2], remaining2[cxpoint1:])),
+	)
 
 
 def position_based_crossover(a: NDArray, b: NDArray) -> tuple[NDArray, NDArray]:
@@ -73,7 +68,7 @@ def position_based_crossover(a: NDArray, b: NDArray) -> tuple[NDArray, NDArray]:
 	child2[sample] = b[sample]
 	rs[sample] = 0
 	rs = np.where(rs == 1)[0]
-	
+
 	s1 = set(a[i] for i in sample)
 	s2 = set(b[i] for i in sample)
 
@@ -86,7 +81,8 @@ def position_based_crossover(a: NDArray, b: NDArray) -> tuple[NDArray, NDArray]:
 
 	return child1, child2
 
-if __name__=='__main__':
-	a=np.array([1,2,3,4,5])
-	b=np.array([6,7,8,9,10])
-	print(position_based_crossover(a,b))
+
+if __name__ == '__main__':
+	a = np.array([0, 1, 2, 3, 4])
+	b = np.array([4, 3, 2, 1, 0])
+	print(order_crossover(a, b))
