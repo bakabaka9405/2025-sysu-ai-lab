@@ -100,18 +100,21 @@ class GeneticAlgTSP:
 	def iterate(self, epochs: int) -> list[int]:
 		start = time.time()
 		last_best_distance = float('inf')
-		best_count = 0
+		parent_mutation_prob = config.base_mutation_prob
 		self.start_workers()
 		for i in range(epochs):
 			epoch_start = time.time()
 			logger.debug(f'epoch {i+1}/{epochs} 开始')
 
-			self.next_generation(best_count)
+			self.next_generation(parent_mutation_prob)
 
 			if config.output_path_dir:
 				plot_path(self.cities, self.population[0][0], i + 1)
 			delta = 0 if last_best_distance == float('inf') else last_best_distance - self.population[0][1]
-			best_count = 0 if delta == 0 else best_count + 1
+			if delta == 0:
+				parent_mutation_prob += config.mutation_punishment
+			else:
+				parent_mutation_prob = min(parent_mutation_prob / config.mutation_reward, config.base_mutation_prob)
 			logger.info(f'epoch {i+1}/{epochs} 结束，用时 {time.time()-epoch_start:.2f} 秒，最短距离 = {self.population[0][1]:.2f} (-{delta:.2f})')
 			last_best_distance = self.population[0][1]
 
@@ -120,7 +123,7 @@ class GeneticAlgTSP:
 
 		return self.population[0][0].tolist() + [len(self.cities) - 1]
 
-	def next_generation(self, best_count: int) -> None:
+	def next_generation(self, parent_mutation_prob: float) -> None:
 		new_population = self.population[:]
 
 		# 准备选择器
@@ -141,12 +144,13 @@ class GeneticAlgTSP:
 			logger.debug('每个进程将复制数据到独立内存')
 		else:
 			logger.debug('每个进程将使用共享内存')
+		logger.debug(f'父辈变异概率 = {parent_mutation_prob:.2f}')
 		logger.debug('分发任务给工作进程...')
 		for task_queue in self.task_queues:
 			task_queue.put(
 				(
 					selector,
-					config.base_mutation_prob + best_count * config.mutation_punishment,
+					parent_mutation_prob,
 					should_copy,
 				)
 			)
