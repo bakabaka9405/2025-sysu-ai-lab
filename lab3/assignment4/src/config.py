@@ -1,10 +1,10 @@
 from typing import Optional, Literal
 
-seed: int = 0
+seed: Optional[int] = None
 """
 随机种子。
-如果为0，则表示每次运行都使用不同的随机种子。
-如果要保证运行结果一致，在设置为非 0 的同时还应该避免使用多进程。
+如果为 None，则表示每次运行都使用不同的随机种子。
+如果要保证运行结果一致，在设置为非 None 的同时还应保证进程数一致。
 """
 
 initial_population_size: int = 10000
@@ -35,9 +35,14 @@ fitness_transform_policy: Literal[
 将适应度进行变换
 """
 
-selection_policy: Literal['RouletteWheel', 'Tournament'] = 'RouletteWheel'
+selection_policy: Literal['RouletteWheel', 'Tournament'] = 'Tournament'
 """
 选择策略，实现了轮盘赌和锦标赛两种策略
+"""
+
+tournament_size: int = 2
+"""
+锦标赛选择的大小（如果使用锦标赛选择）
 """
 
 base_mutation_prob = 0.01
@@ -45,6 +50,13 @@ base_mutation_prob = 0.01
 基础变异概率。
 每个个体有 mutation_prob 的概率进行变异。
 当长时间没有找到更优解时，变异概率会逐渐增加。
+"""
+
+mutation_punishment: float = 0.1
+"""
+一个 epoch 内没有找到更优解时，变异概率增加的惩罚系数。
+仅对父辈生效
+parent_mutation_prob = base_mutation_prob + mutation_punishment * (epoch - last_epoch_no_improve)
 """
 
 homozygous_lethality: float = 0.95
@@ -71,7 +83,7 @@ mutation_policy: Literal[
 	'shuffle_mutation',
 	'random_mutation',
 	'random_mutation_1',
-] = 'random_mutation_1'
+] = 'random_mutation'
 """
 变异方式。
 - swap_mutation: 随机选取两个顺序编码交换
@@ -84,7 +96,7 @@ mutation_policy: Literal[
 - random_mutation_1: 不知道扔掉一点垃圾变异能不能提高性能
 """
 
-num_worker: int = 8
+num_worker: int = 6
 """
 进行交叉操作创建的进程数
 每个进程进行 ceil(cross_per_epoch/num_worker) 次交叉操作
@@ -103,7 +115,7 @@ input_path: str = 'lab3/assignment4/data/qa194.tsp'
 输入文件路径
 """
 
-output_path_dir: Optional[str] = 'C:/Temp/lab3/test/1'
+output_path_dir: Optional[str] = 'C:/Temp/lab3/qa194/1'
 """
 输出文件路径
 如果为 None，则表示不输出任何文件。

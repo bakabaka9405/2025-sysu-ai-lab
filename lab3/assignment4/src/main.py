@@ -1,11 +1,13 @@
 import config
 import util
 import GeneticAlgTSP
+import random
 
 
 def main():
-	if config.seed != 0:
-		util.set_random_seed(config.seed)
+	if not config.seed:
+		config.seed = random.randint(0, 2**31 - 1)
+	util.set_random_seed(config.seed)
 
 	if config.output_path_dir:
 		util.prepare_output_dir(config.output_path_dir)

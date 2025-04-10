@@ -71,6 +71,7 @@ class GeneticAlgTSP:
 				target=parallel_crossover_worker,
 				args=(
 					i,
+					np.random.randint(0, (1 << 31) - 1),
 					task_queue,
 					self.result_queue,
 					self.shared_population,
@@ -89,7 +90,7 @@ class GeneticAlgTSP:
 		logger.debug('正在停止工作进程...')
 
 		for task_queue in self.task_queues:
-			task_queue.put((None, None))  # 发送退出信号
+			task_queue.put(None)
 
 		for worker in self.workers:
 			worker.join(timeout=1.0)
@@ -124,19 +125,29 @@ class GeneticAlgTSP:
 
 		# 准备选择器
 		fitness = np.array([p[1] for p in self.population])
-		selector: Selector = self.selection_fn(len(fitness), fitness=fitness, transform=self.fitness_transform_fn)
+		selector: Selector = self.selection_fn(
+			len(fitness),
+			fitness=fitness,
+			transform=self.fitness_transform_fn,
+			tournament_size=config.tournament_size,
+		)
 
 		# 更新共享内存中的种群数据
 		self.shared_population[:] = self.population
 
 		# 分发任务给所有工作进程
+		should_copy = len(fitness) * (len(self.cities) - 1) * len(self.workers) <= config.worker_data_copy_threshold
+		if should_copy:
+			logger.debug('每个进程将复制数据到独立内存')
+		else:
+			logger.debug('每个进程将使用共享内存')
 		logger.debug('分发任务给工作进程...')
 		for task_queue in self.task_queues:
 			task_queue.put(
 				(
 					selector,
-					config.base_mutation_prob + best_count * 0.1,
-					len(fitness) * (len(self.cities) - 1) * len(self.workers) <= config.worker_data_copy_threshold,
+					config.base_mutation_prob + best_count * config.mutation_punishment,
+					should_copy,
 				)
 			)
 
