@@ -10,12 +10,22 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
+logger = logging.getLogger('TSP')
+logger.setLevel(config.logger_level)
+
 logging.basicConfig(
 	level=config.logger_level,
 	format='[%(asctime)s] [%(process)d] [%(levelname)s] %(message)s',
 	datefmt='%H:%M:%S',
 )
-logger = logging.getLogger('TSP')
+
+if config.output_path_dir and config.log_to_file:
+	fh = logging.FileHandler(f'{config.output_path_dir}/log.txt', mode='w', encoding='utf-8')
+	fh.setLevel(config.logger_level)
+	formatter = logging.Formatter('[%(asctime)s] [%(process)d] [%(levelname)s] %(message)s', datefmt='%H:%M:%S')
+	fh.setFormatter(formatter)
+	logger.addHandler(fh)
+
 
 mat_logger = logging.getLogger('matplotlib')
 mat_logger.setLevel(logging.ERROR)
@@ -74,4 +84,5 @@ def plot_path(cities: NDArray, path: NDArray, epoch: int):
 
 	fig.tight_layout()
 	fig.savefig(f'{config.output_path_dir}/epoch_{epoch}.png')
+	fig.savefig(f'{config.output_path_dir}/best.png')
 	plt.close(fig)

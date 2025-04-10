@@ -19,7 +19,7 @@ maximum_population_size: int = 50000
 如果某个 epoch 过后种群大小超过这个值，则保留最优的前 maximum_population_size 个个体。
 """
 
-cross_per_epoch: int = 100000
+cross_per_epoch: int = 50000
 """
 每个 epoch 进行交叉的次数。
 最多产生 2*cross_per_epoch 个子代。
@@ -73,7 +73,7 @@ mutation_policy: Literal[
 - random_mutation: 每次随机选取以上几种变异的一种
 """
 
-num_worker: int = 20
+num_worker: int = 8
 """
 进行交叉操作创建的进程数
 每个进程进行 ceil(cross_per_epoch/num_worker) 次交叉操作
@@ -84,7 +84,7 @@ input_path: str = 'lab3/assignment4/data/qa194.tsp'
 输入文件路径
 """
 
-output_path_dir: Optional[str] = 'C:/Temp/lab3/qa194/4'
+output_path_dir: Optional[str] = 'C:/Temp/lab3/qa194/5'
 """
 输出文件路径
 如果为 None，则表示不输出任何文件。
@@ -95,4 +95,11 @@ logger_level: Literal['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'] = 'DEBUG'
 logger 的输出级别
 设置为 'DEBUG' 输出最多信息
 设置为 'WARNING' 及以上等级只输出错误信息
+"""
+
+log_to_file: bool = True
+"""
+日志是否输出到文件
+如果是，将输到控制台同时输出到 output_path_dir/log.txt
+否则只在控制台输出
 """
