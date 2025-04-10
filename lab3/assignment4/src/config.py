@@ -25,7 +25,12 @@ cross_per_epoch: int = 50000
 最多产生 2*cross_per_epoch 个子代。
 """
 
-fitness_transform_policy: Literal['linear_baseline', 'exponential_baseline', 'inverse_sqrt'] = 'inverse_sqrt'
+fitness_transform_policy: Literal[
+	'linear_baseline',
+	'sqrt_linear_baseline',
+	'exponential_baseline',
+	'inverse_sqrt',
+] = 'inverse_sqrt'
 """
 将适应度进行变换
 """
@@ -57,12 +62,14 @@ crossover_policy: Literal['partial_mapping_crossover', 'order_crossover', 'posit
 
 mutation_policy: Literal[
 	'swap_mutation',
+	'adjacent_swap_mutation',
 	'range_swap_mutation',
 	'reverse_mutation',
 	'rorate_mutation',
 	'shuffle_mutation',
 	'random_mutation',
-] = 'random_mutation'
+	'random_mutation_1',
+] = 'random_mutation_1'
 """
 变异方式。
 - swap_mutation: 随机选取两个顺序编码交换

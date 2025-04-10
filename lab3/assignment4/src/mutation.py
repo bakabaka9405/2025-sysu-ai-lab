@@ -8,6 +8,12 @@ def swap_mutation(gene: NDArray) -> None:
 	gene[p1], gene[p2] = gene[p2], gene[p1]
 
 
+def adjacent_swap_mutation(gene: NDArray) -> None:
+	size = len(gene)
+	p = np.random.randint(0, size - 1)
+	gene[p], gene[p + 1] = gene[p + 1], gene[p]
+
+
 def range_swap_mutation(gene: NDArray) -> None:
 	size = len(gene)
 	p1, p2, p3, p4 = sorted(np.random.choice(size, size=4, replace=False))
@@ -29,13 +35,18 @@ def rorate_mutation(gene: NDArray) -> None:
 
 def shuffle_mutation(gene: NDArray) -> None:
 	size = len(gene)
-	p1, p2 = np.random.choice(size, size=2, replace=False)
+	p1, p2 = sorted(np.random.choice(size, size=2, replace=False))
 	gene[p1:p2] = np.random.permutation(gene[p1:p2])
 
 
 def random_mutation(gene: NDArray) -> None:
-	mut = [swap_mutation, range_swap_mutation, reverse_mutation, rorate_mutation, shuffle_mutation]
-	mut[np.random.randint(0, 5)](gene)
+	mut = [swap_mutation, adjacent_swap_mutation, range_swap_mutation, reverse_mutation, rorate_mutation, shuffle_mutation]
+	mut[np.random.randint(0, 6)](gene)
+
+
+def random_mutation_1(gene: NDArray) -> None:
+	mut = [swap_mutation, adjacent_swap_mutation, range_swap_mutation, rorate_mutation]
+	mut[np.random.randint(0, 4)](gene)
 
 
 if __name__ == '__main__':
