@@ -114,7 +114,7 @@ class GeneticAlgTSP:
 			if delta == 0:
 				parent_mutation_prob += config.mutation_punishment
 			else:
-				parent_mutation_prob = min(parent_mutation_prob / config.mutation_reward, config.base_mutation_prob)
+				parent_mutation_prob = max(min(parent_mutation_prob, 1.0) / config.mutation_recovery, config.base_mutation_prob)
 			logger.info(f'epoch {i+1}/{epochs} 结束，用时 {time.time()-epoch_start:.2f} 秒，最短距离 = {self.population[0][1]:.2f} (-{delta:.2f})')
 			last_best_distance = self.population[0][1]
 
