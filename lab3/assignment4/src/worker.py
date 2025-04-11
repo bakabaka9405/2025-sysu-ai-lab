@@ -90,7 +90,8 @@ def parallel_crossover_worker(
 
 			# 将结果放入结果队列
 			result_queue.put(result_buffer[:buffer_size])
-
+		except KeyboardInterrupt:
+			return
 		except Exception as e:
 			logger.error(f'Worker进程出错: {e}')
 			result_queue.put([])

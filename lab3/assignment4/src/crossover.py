@@ -45,7 +45,7 @@ def partial_mapping_crossover(a: NDArray, b: NDArray) -> tuple[NDArray, NDArray]
 
 def order_crossover(a: NDArray, b: NDArray) -> tuple[NDArray, NDArray]:
 	size = len(a)
-	cxpoint1, cxpoint2 = sorted(np.random.choice(size + 1, 2, replace=False))
+	cxpoint1, cxpoint2 = sorted(np.random.choice(size, 2, replace=False))
 	mask1, mask2 = np.ones(size, dtype=bool), np.ones(size, dtype=bool)
 
 	mask1[b[cxpoint1:cxpoint2]] = False
@@ -62,7 +62,7 @@ def order_crossover(a: NDArray, b: NDArray) -> tuple[NDArray, NDArray]:
 
 def position_based_crossover(a: NDArray, b: NDArray) -> tuple[NDArray, NDArray]:
 	size = len(a)
-	sample = np.random.choice(range(size), np.random.randint(1, size), replace=False)
+	sample = np.random.choice(np.arange(size - 1), np.random.randint(1, size), replace=False)
 	child1, child2, rs = np.zeros(size, dtype=int), np.zeros(size, dtype=int), np.full(size, 1)
 	child1[sample] = a[sample]
 	child2[sample] = b[sample]

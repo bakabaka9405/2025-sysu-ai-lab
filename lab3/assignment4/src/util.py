@@ -66,10 +66,7 @@ def prepare_output_dir(path: str) -> None:
 
 
 def path_distance(cities: NDArray, path: NDArray) -> float:
-	tail = len(cities) - 1
-	a = np.append(path, [tail], axis=-1)
-	b = np.append(path[1:], [tail, path[0]], axis=-1)
-	return np.sum(np.sqrt(np.sum((cities[a] - cities[b]) ** 2, axis=1)))
+	return np.sum(np.sqrt(np.sum((cities[path] - cities[np.roll(path, -1)]) ** 2, axis=1)))
 
 
 def plot_path(cities: NDArray, path: NDArray, epoch: int):
@@ -86,13 +83,15 @@ def plot_path(cities: NDArray, path: NDArray, epoch: int):
 	y = cities[:, 1]
 	ax.scatter(x, y, c='blue', marker='o', alpha=0.7)
 
+	# 绘制起点和终点
+	ax.scatter(cities[path[0]][0], cities[path[0]][1], c='green', marker='o')
+	ax.scatter(cities[path[-1]][0], cities[path[-1]][1], c='cyan', marker='o')
+
 	# 绘制路径连线
 	for i in range(len(path) - 1):
 		ax.plot([cities[path[i]][0], cities[path[i + 1]][0]], [cities[path[i]][1], cities[path[i + 1]][1]], 'r-', alpha=0.5)
 
-	# 补全最后两根连线
-	ax.plot([cities[path[-1]][0], cities[-1][0]], [cities[path[-1]][1], cities[-1][1]], 'r-', alpha=0.5)
-	ax.plot([cities[path[0]][0], cities[-1][0]], [cities[path[0]][1], cities[-1][1]], 'r-', alpha=0.5)
+	ax.plot([cities[path[-1]][0], cities[path[0]][0]], [cities[path[-1]][1], cities[path[0]][1]], 'r-', alpha=0.5)
 
 	# 添加标题和标签
 	ax.set_title(f'TSP路径 (总距离: {path_distance(cities,path):.2f})')

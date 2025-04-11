@@ -13,13 +13,13 @@ initial_population_size: int = 10000
 使用 numpy 的 permutation 函数生成初始种群。
 """
 
-maximum_population_size: int = 20000
+maximum_population_size: int = 50000
 """
 最大种群大小。
 如果某个 epoch 过后种群大小超过这个值，则保留最优的前 maximum_population_size 个个体。
 """
 
-cross_per_epoch: int = 50000
+cross_per_epoch: int = 100000
 """
 每个 epoch 进行交叉的次数。
 最多产生 2*cross_per_epoch 个子代。
@@ -59,7 +59,7 @@ mutation_punishment: float = 0.3
 parent_mutation_prob = base_mutation_prob + mutation_punishment * (epoch - last_epoch_no_improve)
 """
 
-mutation_reward: float = 2.0
+mutation_recovery: float = 8.0
 """
 一个 epoch 内找到更优解时，变异概率恢复因子。
 parent_mutation_prob /= mutation_reward
@@ -114,14 +114,15 @@ worker_data_copy_threshold: int = 1000 * 10000 * 8
 数据量大且设置进程太多时会爆内存
 设置一个上界（单条基因点数 * 基因数 * 进程数）决定是否复制
 设为 0 即总使用共享内存
+理论上这块设置多少不会影响最终结果
 """
 
-input_path: str = 'lab3/assignment4/data/dj38.tsp'
+input_path: str = 'lab3/assignment4/data/qa194.tsp'
 """
 输入文件路径
 """
 
-output_path_dir: Optional[str] = 'C:/Temp/lab3/dj38/1'
+output_path_dir: Optional[str] = 'C:/Temp/lab3/qa194/1'
 """
 输出文件路径
 如果为 None，则表示不输出任何文件。
@@ -129,7 +130,7 @@ output_path_dir: Optional[str] = 'C:/Temp/lab3/dj38/1'
 
 console_logger_level: Literal['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'] = 'DEBUG'
 """
-logger 的输出级别
+控制台日志的输出级别
 设置为 'DEBUG' 输出最多信息
 设置为 'WARNING' 及以上等级只输出错误信息
 """
@@ -137,6 +138,7 @@ logger 的输出级别
 log_to_file: bool = True
 """
 日志是否输出到文件
-如果是，将输到控制台同时输出到 output_path_dir/log.txt
+如果是，将输到控制台的同时输出到 output_path_dir/log.txt
+输出到文件的内容不包含 DEBUG 级别的信息
 否则只在控制台输出
 """

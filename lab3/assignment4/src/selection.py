@@ -29,6 +29,10 @@ class RouletteWheel(Selector):
 		self.prob /= self.prob.sum()
 
 	def __call__(self, count: int) -> NDArray:
+		"""
+		单次调用 choice 的复杂度是线性的，因此选择一次性产生多个 choice
+		理论上复杂度不超过 n log n，不知道 numpy 怎么实现的，按理说自己写可以达到线性？
+		"""
 		return np.random.choice(self.size, size=(count, 2), p=self.prob)
 
 

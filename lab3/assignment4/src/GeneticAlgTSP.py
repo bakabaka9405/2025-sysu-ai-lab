@@ -39,11 +39,9 @@ class GeneticAlgTSP:
 
 		self.cities = np.array([list(map(float, reversed(line.split()[1:]))) for line in lines[start_line:end_line]])
 
-		# 对基因进行优化：观察到 TSP 的最优解与起点无关，因此可以将固定某一个城市为路径的起点或终点
-		# 使得基因长度 -1，当然后续的计算代码也要相应修改。
 		# 生成初始种群
 		logger.debug('正在生成初始种群...')
-		genes = [np.random.permutation(len(self.cities) - 1) for _ in range(config.initial_population_size)]
+		genes = [np.random.permutation(len(self.cities)) for _ in range(config.initial_population_size)]
 		logger.debug('正在计算初始种群的适应度...')
 		self.population = [(g, path_distance(self.cities, g)) for g in genes]
 		self.crossover_fn = crossover.__dict__[config.crossover_policy]
@@ -86,8 +84,12 @@ class GeneticAlgTSP:
 
 		logger.debug('所有工作进程已启动')
 
-	def stop_workers(self):
+	def stop_workers(self, force: bool = False):
 		logger.debug('正在停止工作进程...')
+
+		if force:
+			for task_queue in self.task_queues:
+				task_queue.close()
 
 		for task_queue in self.task_queues:
 			task_queue.put(None)
@@ -95,6 +97,7 @@ class GeneticAlgTSP:
 		for worker in self.workers:
 			worker.join(timeout=1.0)
 
+		self.result_queue.close()
 		logger.debug('所有工作进程已停止')
 
 	def iterate(self, epochs: int) -> list[int]:
@@ -103,29 +106,35 @@ class GeneticAlgTSP:
 		parent_mutation_prob = config.base_mutation_prob
 		self.start_workers()
 		for i in range(epochs):
-			epoch_start = time.time()
-			logger.debug(f'epoch {i+1}/{epochs} 开始')
+			try:
+				epoch_start = time.time()
+				logger.debug(f'epoch {i+1}/{epochs} 开始')
 
-			self.next_generation(parent_mutation_prob)
+				self.next_generation(parent_mutation_prob)
 
-			if config.output_path_dir:
-				plot_path(self.cities, self.population[0][0], i + 1)
-			delta = 0 if last_best_distance == float('inf') else last_best_distance - self.population[0][1]
-			if delta == 0:
-				parent_mutation_prob += config.mutation_punishment
-			else:
-				parent_mutation_prob = max(min(parent_mutation_prob, 1.0) / config.mutation_recovery, config.base_mutation_prob)
-			logger.info(f'epoch {i+1}/{epochs} 结束，用时 {time.time()-epoch_start:.2f} 秒，最短距离 = {self.population[0][1]:.2f} (-{delta:.2f})')
-			last_best_distance = self.population[0][1]
+				if config.output_path_dir:
+					plot_path(self.cities, self.population[0][0], i + 1)
+				delta = float('inf') if last_best_distance == float('inf') else last_best_distance - self.population[0][1]
+				if delta == 0:
+					parent_mutation_prob += config.mutation_punishment
+				else:
+					parent_mutation_prob = max(min(parent_mutation_prob, 1.0) / config.mutation_recovery, config.base_mutation_prob)
+				logger.info(
+					f'epoch {i+1}/{epochs} 结束，用时 {time.time()-epoch_start:.2f} 秒，最短距离 = {self.population[0][1]:.2f} (-{delta:.2f})'
+				)
+				last_best_distance = self.population[0][1]
+
+			except KeyboardInterrupt:
+				logger.info('用户中断，停止迭代')
+				break
 
 		logger.info(f'总耗时 = {time.time()-start:.2f} 秒')
 		self.stop_workers()
 
-		return self.population[0][0].tolist() + [len(self.cities) - 1]
+		return self.population[0][0].tolist()
 
 	def next_generation(self, parent_mutation_prob: float) -> None:
-		new_population = self.population[:]
-
+		last_population_size = len(self.population)
 		# 准备选择器
 		fitness = np.array([p[1] for p in self.population])
 		selector: Selector = self.selection_fn(
@@ -157,20 +166,20 @@ class GeneticAlgTSP:
 
 		# 收集结果
 		logger.debug('等待结果中...')
-		results_count = 0
 		try:
-			while results_count < config.num_worker:
-				result = self.result_queue.get(timeout=3600)
-				new_population += result
-				results_count += 1
+			for _ in range(config.num_worker):
+				self.population += self.result_queue.get(timeout=3600)
+		except KeyboardInterrupt:
+			logger.info('用户中断，停止交叉操作')
+			raise
 		except Exception as e:
 			logger.error(f'收集结果出错: {e}')
 
 		logger.debug('交叉操作结束')
-		logger.debug(f'新种群大小（不算上一代） = {len(new_population) - len(self.population)}')
+		logger.debug(f'新种群大小（不算上一代） = {len(self.population) - last_population_size}')
 
 		# 更新种群
 		self.population = sorted(
-			new_population,
+			self.population,
 			key=lambda x: x[1],
 		)[: config.maximum_population_size]
