@@ -47,6 +47,8 @@ def log_basic_info() -> None:
 	logger.info(f'交叉方式: {config.crossover_policy}')
 	logger.info(f'变异方式: {config.mutation_policy}')
 	logger.info(f'基础变异概率: {config.base_mutation_prob}')
+	logger.info(f'变异乘法因子: {config.mutation_punishment}')
+	logger.info(f'变异恢复因子： {config.mutation_recovery}')
 	logger.info(f'纯合子致死率: {config.homozygous_lethality}')
 	logger.info(f'距离映射方式: {config.fitness_transform_policy}')
 	logger.info(f'选择策略： {config.selection_policy}')
