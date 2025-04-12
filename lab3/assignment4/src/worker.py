@@ -32,7 +32,7 @@ def parallel_crossover_worker(
 	mutation_function = mutation.__dict__[config.mutation_policy]
 
 	input_buffer: list[Individual] = []
-	result_buffer: list[Optional[Individual]] = [None] * (task_cross_count * 2)
+	result_buffer: list[Optional[Individual]] = [None] * (task_cross_count * 4)
 	while True:
 		try:
 			# 等待任务
@@ -56,16 +56,26 @@ def parallel_crossover_worker(
 				# 复制父代个体
 				parent1, parent2 = np.copy(input_buffer[p1][0]), np.copy(input_buffer[p2][0])
 
+				same = (parent1 == parent2).all()
+
 				# 父代变异
 				# 和子代变异策略稍有不同，最多只能有一方变异
 				# 两个都变异大概率生不出好东西，所以避雷一下
 				if np.random.rand() < parent_mutation_prob:
 					mutation_function(parent1)
+					dis1 = path_distance(cities, parent1)
+					if dis1 < dis_threshold:
+						result_buffer[buffer_size] = (parent1, dis1)
+						buffer_size += 1
 				elif np.random.rand() < parent_mutation_prob:
 					mutation_function(parent2)
+					dis2 = path_distance(cities, parent2)
+					if dis2 < dis_threshold:
+						result_buffer[buffer_size] = (parent2, dis2)
+						buffer_size += 1
 
 				# 纯合子致死检查
-				if (parent1 == parent2).all() and np.random.rand() < config.homozygous_lethality:
+				if same and np.random.rand() < config.homozygous_lethality:
 					continue
 
 				# 交叉产生子代
