@@ -23,6 +23,9 @@ class GeneticAlgTSP:
 	result_queue: mp.Queue
 	# shared_population: ListProxy[Individual]
 	workers: list[mp.Process]
+	current_epoch: int
+	target_epoch: int
+	best_record: list[float]
 
 	def __init__(self, filename: str):
 		log_basic_info()
@@ -43,7 +46,7 @@ class GeneticAlgTSP:
 		logger.debug('正在生成初始种群...')
 		genes = [np.random.permutation(len(self.cities)) for _ in range(config.initial_population_size)]
 		logger.debug('正在计算初始种群的适应度...')
-		self.population = [(g, path_distance(self.cities, g)) for g in genes]
+		self.population = sorted([(g, path_distance(self.cities, g)) for g in genes], key=lambda x: x[1])
 		self.crossover_fn = crossover.__dict__[config.crossover_policy]
 		self.fitness_transform_fn = fitness_transform.__dict__[config.fitness_transform_policy]
 		self.selection_fn = selection.__dict__[config.selection_policy]
@@ -57,6 +60,10 @@ class GeneticAlgTSP:
 		self.shared_population = self.manager.list(self.population)
 
 		logger.debug(f'每个进程处理 {self.task_cross_count} 个交叉操作')
+
+		self.current_epoch = 0
+		self.target_epoch = 0
+		self.best_record = [self.population[0][1]]
 
 	def start_workers(self):
 		logger.debug(f'正在创建 {config.num_worker} 个工作进程...')
@@ -101,28 +108,32 @@ class GeneticAlgTSP:
 		logger.debug('所有工作进程已停止')
 
 	def iterate(self, epochs: int) -> list[int]:
+		self.target_epoch += epochs
 		start = time.time()
 		last_best_distance = float('inf')
 		parent_mutation_prob = config.base_mutation_prob
 		self.start_workers()
-		for i in range(epochs):
+		while self.current_epoch < self.target_epoch:
 			try:
 				epoch_start = time.time()
-				logger.debug(f'epoch {i+1}/{epochs} 开始')
+				logger.debug(f'epoch {self.current_epoch+1}/{self.target_epoch} 开始')
 
 				self.next_generation(parent_mutation_prob)
 
 				if config.output_path_dir:
-					plot_path(self.cities, self.population[0][0], i + 1)
+					plot_path(self.cities, self.population[0][0], self.current_epoch + 1)
 				delta = float('inf') if last_best_distance == float('inf') else last_best_distance - self.population[0][1]
 				if delta == 0:
 					parent_mutation_prob += config.mutation_punishment
 				else:
 					parent_mutation_prob = max(min(parent_mutation_prob, 1.0) / config.mutation_recovery, config.base_mutation_prob)
 				logger.info(
-					f'epoch {i+1}/{epochs} 结束，用时 {time.time()-epoch_start:.2f} 秒，最短距离 = {self.population[0][1]:.2f} (-{delta:.2f})'
+					f'epoch {self.current_epoch+1}/{epochs} 结束，用时 {time.time()-epoch_start:.2f} 秒，最短距离 = {self.population[0][1]:.2f} (-{delta:.2f})'
 				)
 				last_best_distance = self.population[0][1]
+
+				self.best_record.append(self.population[0][1])
+				self.current_epoch += 1
 
 			except KeyboardInterrupt:
 				logger.info('用户中断，停止迭代')

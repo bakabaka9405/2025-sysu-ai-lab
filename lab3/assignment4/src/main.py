@@ -14,9 +14,12 @@ def main():
 
 	ga = GeneticAlgTSP.GeneticAlgTSP(config.input_path)
 
-	res = ga.iterate(400)
+	res = ga.iterate(5000)
 
 	print(res)
+
+	if config.output_path_dir:
+		util.plot_best_record(ga.best_record)
 
 
 if __name__ == '__main__':

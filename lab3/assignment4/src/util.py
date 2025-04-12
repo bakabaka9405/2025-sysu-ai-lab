@@ -103,3 +103,16 @@ def plot_path(cities: NDArray, path: NDArray, epoch: int):
 	fig.savefig(f'{config.output_path_dir}/epoch_{epoch}.png')
 	fig.savefig(f'{config.output_path_dir}/best.png')
 	plt.close(fig)
+
+
+def plot_best_record(best_record: list[float]) -> None:
+	fig, ax = plt.subplots(figsize=(10, 8))
+	ax.ticklabel_format(axis='y', style='plain')
+	ax.plot(best_record, color='blue', label='最短距离')
+	ax.set_title('每轮最短距离变化')
+	ax.set_xlabel('迭代次数')
+	ax.set_ylabel('最短距离')
+	ax.legend()
+	ax.grid(True)
+	fig.savefig(f'{config.output_path_dir}/best_record.png')
+	plt.close(fig)
