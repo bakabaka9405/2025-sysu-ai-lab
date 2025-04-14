@@ -7,7 +7,7 @@ seed: Optional[int] = None
 如果要保证运行结果一致，在设置为非 None 的同时还应保证进程数一致。
 """
 
-initial_population_size: int = 20000
+initial_population_size: int = 10000
 """
 最初的种群大小。
 使用 numpy 的 permutation 函数生成初始种群。
@@ -104,7 +104,7 @@ mutation_policy: Literal[
 
 num_worker: int = 6
 """
-进行交叉操作创建的进程数
+进行交叉操作创建的进程数  
 每个进程进行 ceil(cross_per_epoch/num_worker) 次交叉操作
 """
 
@@ -117,18 +117,18 @@ worker_data_copy_threshold: int = 1000 * 10000 * 8
 理论上这块设置多少不会影响最终结果
 """
 
-input_path: str = 'lab3/assignment4/data/uy734.tsp'
+input_path: str = 'lab3/assignment4/data/dj38.tsp'
 """
 输入文件路径
 """
 
-output_path_dir: Optional[str] = 'C:/Temp/lab3/uy734/3'
+output_path_dir: Optional[str] = 'C:/Temp/lab3/dj38/1'
 """
 输出文件路径
 如果为 None，则表示不输出任何文件。
 """
 
-console_logger_level: Literal['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'] = 'DEBUG'
+console_logger_level: Literal['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'] = 'INFO'
 """
 控制台日志的输出级别
 设置为 'DEBUG' 输出最多信息
