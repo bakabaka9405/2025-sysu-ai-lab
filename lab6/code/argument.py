@@ -11,7 +11,7 @@ def dqn_arguments(parser):
 	parser.add_argument('--eps_end', default=0.05, type=float)
 	parser.add_argument('--eps_decay', default=1000, type=int)
 	parser.add_argument('--update_freq', default=100, type=int)
-	parser.add_argument('--test', default=True, type=bool)
+	parser.add_argument('--test', default=False, type=bool)
 	parser.add_argument('--device', default='cuda', type=str)
 	parser.add_argument('--output_dir', default='C:/Temp/dqn', type=str)
 	parser.add_argument('--save_model', default=True, type=bool)
